@@ -734,15 +734,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 })();
 
+// ── Googleフォーム設定（オーナーが入力してください） ──
+// GoogleフォームのURLを設定 例: https://docs.google.com/forms/d/e/XXXXXXXX/formResponse
+const FORM_ACTION = '';
+// 各フィールドのentry.XXXXXX（Googleフォームのソースから確認してください）
+const ENTRY_NAME  = '';  // お名前フィールド
+const ENTRY_BIRTH = '';  // 生年月日フィールド
+const ENTRY_EMAIL = '';  // メールフィールド
+
+function validateEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+}
+
+function showSuccess() {
+  const formArea = document.getElementById('formArea');
+  formArea.style.transition = 'opacity 0.6s';
+  formArea.style.opacity = '0';
+  setTimeout(()=>{
+    formArea.style.display = 'none';
+    document.getElementById('successScreen').style.display = 'block';
+  }, 600);
+}
+
 // フォーム送信
 function handleSubmit(){
   const name  = document.getElementById('name').value.trim();
   const birth = document.getElementById('birth').value;
   const email = document.getElementById('email').value.trim();
   const errors = [];
-  if(!name)  errors.push('name');
-  if(!birth) errors.push('birth');
-  if(!email) errors.push('email');
+  if(!name)                   errors.push('name');
+  if(!birth)                  errors.push('birth');
+  if(!email || !validateEmail(email)) errors.push('email');
 
   if(errors.length > 0){
     ['name','birth','email'].forEach(id => {
@@ -755,15 +777,24 @@ function handleSubmit(){
     return;
   }
 
-  // ここでGoogleフォームへ送信
-  // const FORM_ACTION = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
+  if(!FORM_ACTION) {
+    // エンドポイント未設定の場合はUI表示のみ
+    showSuccess();
+    return;
+  }
 
-  document.getElementById('formArea').style.opacity = '0';
-  document.getElementById('formArea').style.transition = 'opacity 0.6s';
-  setTimeout(()=>{
-    document.getElementById('formArea').style.display = 'none';
-    document.getElementById('successScreen').style.display = 'block';
-  }, 600);
+  const btn = document.querySelector('.submit-btn');
+  btn.disabled = true;
+
+  const formData = new FormData();
+  if(ENTRY_NAME)  formData.append(ENTRY_NAME,  name);
+  if(ENTRY_BIRTH) formData.append(ENTRY_BIRTH, birth);
+  if(ENTRY_EMAIL) formData.append(ENTRY_EMAIL, email);
+
+  fetch(FORM_ACTION, { method: 'POST', mode: 'no-cors', body: formData })
+    .then(()=>{ showSuccess(); })
+    .catch(()=>{ showSuccess(); }) // no-corsはopaqueレスポンスのため常にthenで処理される
+    .finally(()=>{ btn.disabled = false; });
 }
 </script>
 </body>
